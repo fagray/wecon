@@ -5,6 +5,8 @@ WORKING_DIR=$(cd -P -- "$(dirname -- "$0")" && pwd -P)
 RESULTS_PATH="$WORKING_DIR/results/$TARGET"
 SUB_PATH="$RESULTS_PATH/subdomain"
 WORDLIST_PATH="$WORKING_DIR/wordlists"
+TOOLS_PATH="$WORKING_DIR/tools"
+IP_PATH="$RESULTS_PATH/ip"
 
 RED="\033[1;31m"
 GREEN="\033[1;32m"
@@ -15,7 +17,7 @@ RESET="\033[0m"
 setUp() {
 
     echo -e "${RED}[+] Creating directories...${RESET}"
-    mkdir -p $RESULTS_PATH $SUB_PATH $WORDLIST_PATH
+    mkdir -p $RESULTS_PATH $SUB_PATH $WORDLIST_PATH $IP_PATH $TOOLS_PATH
     echo -e "${BLUE}[*] $RESULTS_PATH${RESET}"
     echo -e "${BLUE}[*] $SUB_PATH\n${RESET}"
 
@@ -40,16 +42,25 @@ checkArgs() {
 
 huntForSubdomains() {
     
-    echo -e "${GREEN}\n--==[ Enumerating subdomains ]==--${RESET}"
-    runBanner "Amass"
-    /snap/bin/amass enum -d $TARGET -o $SUB_PATH/amass.txt
+    #echo -e "${GREEN}\n--==[ Enumerating subdomains ]==--${RESET}"
+    #runBanner "Amass"
+    #/snap/bin/amass enum -d $TARGET -o $SUB_PATH/amass.txt
 
     runBanner "Subfinder"
-    ~/go/bin/subfinder -d $TARGET -t 50 -b -w $WORDLIST_PATH/dns_all.txt $TARGET -nW --silent -o $SUB_PATH/subfinder.txt
+    /usr/local/go/bin/subfinder -d $TARGET -t 50 $TARGET -nW --silent -o $SUB_PATH/subfinder.txt
 
     echo -e "${RED}\n[+] Combining subdomains...${RESET}"
     cat $SUB_PATH/*.txt | sort | awk '{print tolower($0)}' | uniq > $SUB_PATH/final-subdomains.txt
     echo -e "${BLUE}[*] Check the list of subdomains at $SUB_PATH/final-subdomains.txt${RESET}"
+}
+
+resolveIpAddresses(){
+    echo -e "${GREEN}\n--==[ Resolving IP addresses ]==--${RESET}"
+    runBanner "massdns"
+    $TOOLS_PATH/massdns/bin/massdns -r $TOOLS_PATH/massdns/lists/resolvers.txt -q -t A -o S -w $IP_PATH/massdns.raw $SUB_PATH/final-subdomains.txt
+    cat $IP_PATH/massdns.raw | grep -e ' A ' |  cut -d 'A' -f 2 | tr -d ' ' > $IP_PATH/massdns.txt
+    cat $IP_PATH/*.txt | sort -V | uniq > $IP_PATH/final-ips.txt
+    echo -e "${BLUE}[*] Check the list of IP addresses at $IP_PATH/final-ips.txt${RESET}"
 }
 
 runBanner(){
@@ -59,3 +70,4 @@ runBanner(){
 
 setUp
 huntForSubdomains
+resolveIpAddresses
