@@ -42,9 +42,9 @@ checkArgs() {
 
 huntForSubdomains() {
     
-    #echo -e "${GREEN}\n--==[ Enumerating subdomains ]==--${RESET}"
-    #runBanner "Amass"
-    #/snap/bin/amass enum -d $TARGET -o $SUB_PATH/amass.txt
+    echo -e "${GREEN}\n--==[ Enumerating subdomains ]==--${RESET}"
+    runBanner "Amass"
+    /snap/bin/amass enum -d $TARGET -o $SUB_PATH/amass.txt
 
     runBanner "Subfinder"
     /usr/local/go/bin/subfinder -d $TARGET -t 50 $TARGET -nW --silent -o $SUB_PATH/subfinder.txt
